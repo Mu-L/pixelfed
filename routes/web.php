@@ -5,6 +5,7 @@ Route::domain(config('pixelfed.domain.app'))->middleware(['validemail', 'twofact
     Route::redirect('/home', '/')->name('home');
     Route::get('web/directory', 'LandingController@directoryRedirect');
     Route::get('web/explore', 'LandingController@exploreRedirect');
+    Route::get('authorize_interaction', 'AuthorizeInteractionController@get');
 
     Auth::routes();
     Route::get('auth/raw/mastodon/start', 'RemoteAuthController@startRedirect');
@@ -29,7 +30,7 @@ Route::domain(config('pixelfed.domain.app'))->middleware(['validemail', 'twofact
     Route::get('auth/pci/{id}/{code}', 'ParentalControlsController@inviteRegister');
     Route::post('auth/pci/{id}/{code}', 'ParentalControlsController@inviteRegisterStore');
 
-    Route::get('auth/sign_up', 'CuratedRegisterController@index')->name('auth.curated-onboarding');
+    Route::get('auth/sign_up', 'SiteController@curatedOnboarding')->name('auth.curated-onboarding');
     Route::post('auth/sign_up', 'CuratedRegisterController@proceed');
     Route::get('auth/sign_up/concierge/response-sent', 'CuratedRegisterController@conciergeResponseSent');
     Route::get('auth/sign_up/concierge', 'CuratedRegisterController@concierge');
@@ -43,6 +44,93 @@ Route::domain(config('pixelfed.domain.app'))->middleware(['validemail', 'twofact
     Route::post('auth/sign_up/resend-confirmation', 'CuratedRegisterController@resendConfirmationProcess');
     Route::get('auth/forgot/email', 'UserEmailForgotController@index')->name('email.forgot');
     Route::post('auth/forgot/email', 'UserEmailForgotController@store')->middleware('throttle:10,900,forgotEmail');
+
+    Route::group([
+        'as' => 'passport.',
+        'prefix' => config('passport.path', 'oauth'),
+    ], function () {
+        Route::post('/token', [
+            'uses' => '\Laravel\Passport\Http\Controllers\AccessTokenController@issueToken',
+            'as' => 'token',
+            'middleware' => 'throttle',
+        ]);
+
+        Route::get('/authorize', [
+            'uses' => '\Laravel\Passport\Http\Controllers\AuthorizationController@authorize',
+            'as' => 'authorizations.authorize',
+            'middleware' => 'web',
+        ]);
+
+        $guard = config('passport.guard', null);
+
+        Route::middleware(['web', $guard ? 'auth:'.$guard : 'auth'])->group(function () {
+            Route::post('/token/refresh', [
+                'uses' => '\Laravel\Passport\Http\Controllers\TransientTokenController@refresh',
+                'as' => 'token.refresh',
+            ]);
+
+            Route::post('/authorize', [
+                'uses' => '\App\Http\Controllers\OAuth\OobAuthorizationController@approve',
+                'as' => 'authorizations.approve',
+            ]);
+
+            Route::delete('/authorize', [
+                'uses' => '\Laravel\Passport\Http\Controllers\DenyAuthorizationController@deny',
+                'as' => 'authorizations.deny',
+            ]);
+
+            Route::get('/tokens', [
+                'uses' => '\Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController@forUser',
+                'as' => 'tokens.index',
+            ]);
+
+            Route::delete('/tokens/{token_id}', [
+                'uses' => '\Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController@destroy',
+                'as' => 'tokens.destroy',
+            ]);
+
+            Route::get('/clients', [
+                'uses' => '\Laravel\Passport\Http\Controllers\ClientController@forUser',
+                'as' => 'clients.index',
+            ]);
+
+            Route::post('/clients', [
+                'uses' => '\Laravel\Passport\Http\Controllers\ClientController@store',
+                'as' => 'clients.store',
+            ]);
+
+            Route::put('/clients/{client_id}', [
+                'uses' => '\Laravel\Passport\Http\Controllers\ClientController@update',
+                'as' => 'clients.update',
+            ]);
+
+            Route::delete('/clients/{client_id}', [
+                'uses' => '\Laravel\Passport\Http\Controllers\ClientController@destroy',
+                'as' => 'clients.destroy',
+            ]);
+
+            Route::get('/scopes', [
+                'uses' => '\Laravel\Passport\Http\Controllers\ScopeController@all',
+                'as' => 'scopes.index',
+            ]);
+
+            Route::get('/personal-access-tokens', [
+                'uses' => '\Laravel\Passport\Http\Controllers\PersonalAccessTokenController@forUser',
+                'as' => 'personal.tokens.index',
+            ]);
+
+            Route::post('/personal-access-tokens', [
+                'uses' => '\Laravel\Passport\Http\Controllers\PersonalAccessTokenController@store',
+                'as' => 'personal.tokens.store',
+            ]);
+
+            Route::delete('/personal-access-tokens/{token_id}', [
+                'uses' => '\Laravel\Passport\Http\Controllers\PersonalAccessTokenController@destroy',
+                'as' => 'personal.tokens.destroy',
+            ]);
+        });
+
+    });
 
     Route::get('discover', 'DiscoverController@home')->name('discover');
 
@@ -67,7 +155,7 @@ Route::domain(config('pixelfed.domain.app'))->middleware(['validemail', 'twofact
         Route::get('lang/{locale}', 'SiteController@changeLocale');
         Route::get('restored', 'AccountController@accountRestored');
 
-        Route::get('verify-email', 'AccountController@verifyEmail');
+        Route::get('verify-email', 'AccountController@verifyEmail')->name('account.verify_email');
         Route::post('verify-email', 'AccountController@sendVerifyEmail');
         Route::get('verify-email/request', 'InternalApiController@requestEmailVerification');
         Route::post('verify-email/request', 'InternalApiController@requestEmailVerificationStore');
@@ -124,7 +212,8 @@ Route::domain(config('pixelfed.domain.app'))->middleware(['validemail', 'twofact
 
         Route::get('warning', 'AccountInterstitialController@get');
         Route::post('warning', 'AccountInterstitialController@read');
-        Route::get('my2020', 'SeasonalController@yearInReview');
+
+        Route::get('contact-admin-response/{id}', 'ContactController@showAdminResponse');
 
         Route::get('web/my-portfolio', 'PortfolioController@myRedirect');
         Route::get('web/hashtag/{tag}', 'SpaController@hashtagRedirect');
@@ -266,6 +355,11 @@ Route::domain(config('pixelfed.domain.app'))->middleware(['validemail', 'twofact
             Route::post('manage', 'ProfileAliasController@store');
             Route::post('manage/delete', 'ProfileAliasController@delete');
         });
+
+        Route::group(['prefix' => 'account/migration', 'middleware' => 'dangerzone'], function() {
+            Route::get('manage', 'ProfileMigrationController@index');
+            Route::post('manage', 'ProfileMigrationController@store');
+        });
     });
 
     Route::group(['prefix' => 'site'], function () {
@@ -309,6 +403,7 @@ Route::domain(config('pixelfed.domain.app'))->middleware(['validemail', 'twofact
             Route::view('parental-controls', 'site.help.parental-controls');
             Route::view('email-confirmation-issues', 'site.help.email-confirmation-issues')->name('help.email-confirmation-issues');
             Route::view('curated-onboarding', 'site.help.curated-onboarding')->name('help.curated-onboarding');
+            Route::view('account-migration', 'site.help.account-migration')->name('help.account-migration');
         });
         Route::get('newsroom/{year}/{month}/{slug}', 'NewsroomController@show');
         Route::get('newsroom/archive', 'NewsroomController@archive');
@@ -347,6 +442,32 @@ Route::domain(config('pixelfed.domain.app'))->middleware(['validemail', 'twofact
 
     Route::get('auth/invite/a/{code}', 'AdminInviteController@index');
     Route::post('api/v1.1/auth/invite/admin/re', 'AdminInviteController@apiRegister')->middleware('throttle:5,1440');
+
+    Route::redirect('groups/', '/groups/home');
+    Route::redirect('groups/home', '/groups/feed');
+
+    Route::prefix('groups')->group(function() {
+        // Route::get('feed', 'GroupController@index');
+        Route::get('{id}/invite/claim', 'GroupController@groupInviteClaim');
+        Route::get('{id}/invite', 'GroupController@groupInviteLanding');
+        Route::get('{id}/settings', 'GroupController@groupSettings');
+        Route::get('{gid}/topics/{topic}', 'Groups\GroupsTopicController@showTopicFeed');
+        Route::get('{gid}/p/{sid}.json', 'GroupController@getStatusObject');
+        Route::get('{gid}/p/{sid}', 'GroupController@showStatus');
+        Route::get('{id}/user/{pid}', 'GroupController@showProfile');
+        Route::get('{id}/un/{pid}', 'GroupController@showProfile');
+        Route::get('{id}/username/{pid}', 'GroupController@showProfileByUsername');
+        Route::get('{id}/{path}', 'GroupController@show');
+        Route::get('{id}.json', 'GroupController@getGroupObject');
+        Route::get('feed', 'GroupController@index');
+        Route::get('create', 'GroupController@index');
+        Route::get('discover', 'GroupController@index');
+        Route::get('search', 'GroupController@index');
+        Route::get('joins', 'GroupController@index');
+        Route::get('notifications', 'GroupController@index');
+        Route::get('{id}', 'GroupController@show');
+    });
+    Route::get('g/{hid}', 'GroupController@groupShortLinkRedirect');
 
     Route::get('storage/m/_v2/{pid}/{mhash}/{uhash}/{f}', 'MediaController@fallbackRedirect');
     Route::get('stories/{username}', 'ProfileController@stories');

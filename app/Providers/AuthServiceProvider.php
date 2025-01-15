@@ -2,9 +2,9 @@
 
 namespace App\Providers;
 
+use Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Laravel\Passport\Passport;
-use Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -24,11 +24,12 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        if(config('app.env') === 'production' && config('pixelfed.oauth_enabled') == true) {
+        if(config('pixelfed.oauth_enabled') == true) {
+            Passport::ignoreRoutes();
             Passport::tokensExpireIn(now()->addDays(config('instance.oauth.token_expiration', 356)));
             Passport::refreshTokensExpireIn(now()->addDays(config('instance.oauth.refresh_expiration', 400)));
             Passport::enableImplicitGrant();
-            if(config('instance.oauth.pat.enabled')) {
+            if (config('instance.oauth.pat.enabled')) {
                 Passport::personalAccessClientId(config('instance.oauth.pat.id'));
             }
 
@@ -37,7 +38,9 @@ class AuthServiceProvider extends ServiceProvider
                 'write' => 'Full write access to your account',
                 'follow' => 'Ability to follow other profiles',
                 'admin:read' => 'Read all data on the server',
+                'admin:read:domain_blocks' => 'Read sensitive information of all domain blocks',
                 'admin:write' => 'Modify all data on the server',
+                'admin:write:domain_blocks' => 'Perform moderation actions on domain blocks',
                 'push'  => 'Receive your push notifications'
             ]);
 

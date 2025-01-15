@@ -3,6 +3,8 @@
 Route::domain(config('pixelfed.domain.admin'))->prefix('i/admin')->group(function () {
     Route::redirect('/', '/dashboard');
     Route::redirect('timeline', config('app.url').'/timeline');
+    Route::get('settings/custom-css', 'AdminController@customCss')->name('admin.custom-css');
+    Route::post('settings/custom-css', 'AdminController@saveCustomCss');
     Route::get('dashboard', 'AdminController@home')->name('admin.home');
     Route::get('stats', 'AdminController@stats')->name('admin.stats');
     Route::get('reports', 'AdminController@reports')->name('admin.reports');
@@ -75,6 +77,8 @@ Route::domain(config('pixelfed.domain.admin'))->prefix('i/admin')->group(functio
     Route::get('messages/home', 'AdminController@messagesHome')->name('admin.messages');
     Route::get('messages/show/{id}', 'AdminController@messagesShow');
     Route::post('messages/mark-read', 'AdminController@messagesMarkRead');
+    Route::post('messages/show/{id}', 'AdminController@messagesReply');
+    Route::post('messages/preview/{id}', 'AdminController@messagesReplyPreview');
     Route::redirect('site-news', '/i/admin/newsroom');
     Route::get('newsroom', 'AdminController@newsroomHome')->name('admin.newsroom.home');
     Route::get('newsroom/create', 'AdminController@newsroomCreate')->name('admin.newsroom.create');
@@ -144,6 +148,12 @@ Route::domain(config('pixelfed.domain.admin'))->prefix('i/admin')->group(functio
         Route::post('instances/refresh-stats', 'AdminController@postInstanceRefreshStatsApi');
         Route::get('instances/download-backup', 'AdminController@downloadBackup');
         Route::post('instances/import-data', 'AdminController@importBackup');
+        Route::get('reports/moderated-profiles', 'AdminController@getModeratedProfiles');
+        Route::post('reports/moderated-profiles/update', 'AdminController@updateModeratedProfile');
+        Route::post('reports/moderated-profiles/create', 'AdminController@createModeratedProfile');
+        Route::get('reports/moderated-profiles/show', 'AdminController@getModeratedProfile');
+        Route::post('reports/moderated-profiles/delete', 'AdminController@deleteModeratedProfile');
+        Route::get('reports/moderated-profiles/export', 'AdminController@exportModeratedProfiles');
         Route::get('reports/stats', 'AdminController@reportsStats');
         Route::get('reports/all', 'AdminController@reportsApiAll');
         Route::get('reports/remote', 'AdminController@reportsApiRemote');
@@ -171,5 +181,12 @@ Route::domain(config('pixelfed.domain.admin'))->prefix('i/admin')->group(functio
         Route::post('curated-onboarding/show/{id}/reject', 'AdminCuratedRegisterController@apiHandleReject');
         Route::post('curated-onboarding/show/{id}/approve', 'AdminCuratedRegisterController@apiHandleApprove');
         Route::get('curated-onboarding/templates/get', 'AdminCuratedRegisterController@getActiveTemplates');
+        Route::get('settings/fetch', 'AdminController@settingsApiFetch');
+        Route::post('settings/rules/add', 'AdminController@settingsApiRulesAdd');
+        Route::post('settings/rules/delete', 'AdminController@settingsApiRulesDelete');
+        Route::post('settings/rules/delete/all', 'AdminController@settingsApiRulesDeleteAll');
+        Route::post('settings/autofollow/add', 'AdminController@settingsApiAutofollowAdd');
+        Route::post('settings/autofollow/delete', 'AdminController@settingsApiAutofollowDelete');
+        Route::post('settings/update/{type}', 'AdminController@settingsApiUpdateType');
     });
 });

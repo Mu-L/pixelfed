@@ -30,6 +30,8 @@ return [
         'ingest' => [
             'store_notes_without_followers' => env('AP_INGEST_STORE_NOTES_WITHOUT_FOLLOWERS', false),
         ],
+
+        'authorized_fetch' => env('AUTHORIZED_FETCH', false),
     ],
 
     'atom' => [
@@ -57,4 +59,6 @@ return [
         // max size in bytes, default is 2mb
         'max_size' => env('CUSTOM_EMOJI_MAX_SIZE', 2000000),
     ],
+
+    'migration' => env('PF_ACCT_MIGRATION_ENABLED', true),
 ];

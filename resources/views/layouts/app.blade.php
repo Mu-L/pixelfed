@@ -11,7 +11,7 @@
 
 	<title>{{ $title ?? config_cache('app.name') }}</title>
 	<link rel="manifest" href="{{url('/manifest.json')}}">
-
+	<meta property="og:logo" content="{{ url('/img/pixelfed-icon-color.png')}}" />
 	<meta property="og:site_name" content="Pixelfed">
 	<meta property="og:title" content="{{ $ogTitle ?? $title ?? config_cache('app.name') }}">
 	<meta property="og:type" content="{{ $ogType ?? 'article' }}">
@@ -70,11 +70,11 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 	<meta name="mobile-web-app-capable" content="yes">
 
-	<title>{{ $title ?? config('app.name', 'Pixelfed') }}</title>
+	<title>{{ $title ?? config_cache('app.name', 'Pixelfed') }}</title>
 	<link rel="manifest" href="/manifest.json">
-
+	<meta property="og:logo" content="{{ url('/img/pixelfed-icon-color.png')}}" />
 	<meta property="og:site_name" content="Pixelfed">
-	<meta property="og:title" content="{{ $ogTitle ?? $title ?? config('app.name', 'pixelfed') }}">
+	<meta property="og:title" content="{{ $ogTitle ?? $title ?? config_cache('app.name', 'pixelfed') }}">
 	<meta property="og:type" content="{{ $ogType ?? 'article' }}">
 	<meta property="og:url" content="{{url(request()->url())}}">
 	@stack('meta')
