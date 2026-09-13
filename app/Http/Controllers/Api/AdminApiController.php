@@ -1011,6 +1011,7 @@ class AdminApiController extends Controller
         $sort = $request->input('sort', 'desc') === 'asc' ? 'asc' : 'desc';
 
         $query = Profile::query()
+            ->whereNull('status')
             ->when($filter === 'local', fn ($query) => $query->whereNull('domain'))
             ->when($filter === 'remote', fn ($query) => $query->whereNotNull('domain'))
             ->when($q !== '', fn ($query) => $query->where('username', 'like', $q.'%'))
