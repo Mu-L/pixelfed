@@ -283,7 +283,7 @@ class AdminApiController extends Controller
                     $r['status'] = $status;
 
                     if ($status['local'] && isset($status['account']['id'])) {
-                        $status['user_id'] = (string) AccountService::getUserIdFromProfileId($status['account']['id']);
+                        $r['status']['user_id'] = (string) AccountService::getUserIdFromProfileId($status['account']['id']);
                     }
 
                     if (isset($status['in_reply_to_id'])) {
