@@ -325,6 +325,11 @@ class AccountService
         }
     }
 
+    public static function getUserIdFromProfileId($profileId): ?int
+    {
+        return Profile::whereKey($profileId)->value('user_id');
+    }
+
     public static function getMetaDescription($id)
     {
         $account = self::get($id, true);
