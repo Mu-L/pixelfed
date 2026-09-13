@@ -83,7 +83,7 @@ class AdminStatsService
                 'contact' => PrettyNumber::convert(Contact::whereNull('read_at')->count()),
                 'contact_monthly' => PrettyNumber::convert(Contact::whereNull('read_at')->where('created_at', '>', now()->subMonth())->count()),
                 'reports' => PrettyNumber::convert(Report::whereNull('admin_seen')->count()),
-                'reports_monthly' => PrettyNumber::convert(Report::whereNull('admin_seen')->where('created_at', '>', now()->subMonth())->count()),
+                'reports_monthly' => PrettyNumber::convert(Report::where('created_at', '>', now()->subMonth())->count()),
             ];
         });
     }
