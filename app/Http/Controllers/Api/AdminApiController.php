@@ -282,6 +282,10 @@ class AdminApiController extends Controller
 
                     $r['status'] = $status;
 
+                    if ($status['local'] && isset($status['account']['id'])) {
+                        $status['user_id'] = (string) AccountService::getUserIdFromProfileId($status['account']['id']);
+                    }
+
                     if (isset($status['in_reply_to_id'])) {
                         $r['parent'] = StatusService::get($status['in_reply_to_id'], false);
                     }
@@ -289,8 +293,11 @@ class AdminApiController extends Controller
 
                 if ($report->object_type === Profile::class) {
                     $acct = AccountService::get($report->object_id, true);
-                    if ($acct) {
+                    if ($acct && isset($acct['local'])) {
                         $r['account'] = $acct;
+                        if ($acct['local']) {
+                            $r['account']['user_id'] = (string) AccountService::getUserIdFromProfileId($acct['id']);
+                        }
                     }
                 }
 
