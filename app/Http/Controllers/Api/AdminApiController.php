@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AdminInstance;
+use App\Http\Resources\AdminProfile;
 use App\Http\Resources\AdminUser;
 use App\Jobs\DeletePipeline\DeleteAccountPipeline;
 use App\Jobs\DeletePipeline\DeleteRemoteProfilePipeline;
