@@ -79,6 +79,7 @@ class PublicTimelineService
 
                 continue;
             }
+
             if (! data_get($s, 'account.id')) {
                 self::rem($postId);
 
